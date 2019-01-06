@@ -1,6 +1,8 @@
 import readline
 import cmd
 import os
+import sys
+import subprocess
 
 from progress.bar import Bar
 from scapy.sendrecv import sendp
@@ -8,7 +10,6 @@ from scapy.all import conf as scapy_conf
 
 from wisec.interface import Interface
 import wisec.deauth as deauth
-
 
 class WifiShell(cmd.Cmd):
     prompt = '> '
@@ -26,6 +27,12 @@ class WifiShell(cmd.Cmd):
         if readline:
             readline.set_history_length(self.histfile_size)
             readline.write_history_file(self.histfile)
+
+    def do_sh(self, arg):
+        os.system(arg)
+
+    def help_sh(self):
+        print('sh [CMD]\nExecute shell command')
 
     def do_EOF(self, _):
         return True
@@ -109,7 +116,12 @@ Set default `interface` to use.
 When given no arguments, prints current default.
 '''.strip())
 
+
 if __name__ == '__main__':
+    if os.geteuid() != 0:
+        print("Must be run as root.")
+        sys.exit(1)
+
     scapy_conf.verb = 0
 
     try:
