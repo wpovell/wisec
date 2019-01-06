@@ -1,3 +1,0 @@
-* TODO Transition to cmd2
-* TODO Add SSID scanning
-* TODO MitM for HTTP
