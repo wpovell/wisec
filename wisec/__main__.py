@@ -49,9 +49,11 @@ class WifiShell(cmd.Cmd):
         return matches
 
     def help_monitor(self):
-        print(f'''monitor [interface]
-        Set `interface` to monitor mode.
-        Default `interface` is {Interface.default.name}''')
+        print(f'''
+monitor [interface]
+Set `interface` to monitor mode.
+    Default `interface` is {Interface.default.name}
+'''.strip())
 
     def do_deauth(self, arg):
         arg = arg.strip().split()
@@ -78,17 +80,37 @@ class WifiShell(cmd.Cmd):
                 for i in Bar('').iter(range(count)):
                     sendp(packet)
         except KeyboardInterrupt:
-            print("Interrupted")
+            print('Interrupted')
 
     def help_deauth(self):
-        print('''deauth bssid [mac] [count]
-        Send `count` deauth packets against `mac` on `bssid`.
-        `mac` defaults to 'all', which deauths on 'FF:FF:FF:FF:FF:FF'.
-        `count` defaults to 1.''')
+        print('''
+deauth bssid [mac] [count]
+Send `count` deauth packets against `mac` on `bssid`.
+    `mac` defaults to 'all', which deauths on 'FF:FF:FF:FF:FF:FF'.
+    `count` defaults to 1.
+'''.strip())
+
+    def do_default(self, arg):
+        if not arg.strip():
+            print(Interface.default)
+            return
+
+        intr = Interface.find(arg.strip())
+        if intr is None:
+            print('No such interface')
+            return
+
+        Interface.set_default(intr)
+
+    def help_default(self):
+        print('''
+default [interface]
+Set default `interface` to use.
+When given no arguments, prints current default.
+'''.strip())
 
 if __name__ == '__main__':
     scapy_conf.verb = 0
-    scapy_conf.iface = Interface.default.name
 
     try:
         WifiShell().cmdloop()

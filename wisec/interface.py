@@ -1,6 +1,8 @@
 from subprocess import DEVNULL, call, check_output
 import re
 
+from scapy.all import conf as scapy_conf
+
 
 class Interface:
     shorts = {
@@ -56,6 +58,11 @@ class Interface:
     def __str__(self):
         return self.name
 
+    @classmethod
+    def set_default(cls, intr):
+        cls.default = intr
+        scapy_conf.iface = intr.name
+
 
 def get_all_interfaces():
     '''Get all active interfaces'''
@@ -79,4 +86,4 @@ def get_all_interfaces():
 
 
 Interface.all = get_all_interfaces()
-Interface.default = Interface.find('adapter')
+Interface.set_default(Interface.find('adapter'))
