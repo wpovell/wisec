@@ -4,13 +4,12 @@ A small REPL to play around with wifi security
 
 ## Installation
 
-Install python requirements:
+- Install Python3
+- Install Python requirements:
 
-```
-pip install -r requirements.txt
-```
+  ```pip install -r requirements.txt```
 
-Note that scapy may have other dependencies.
+  (Note that Scapy may have other dependencies)
 
 ## Usage
 
