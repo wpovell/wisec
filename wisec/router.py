@@ -3,6 +3,7 @@ from scapy.sendrecv import sniff
 from scapy.all import Dot11Beacon, Dot11ProbeResp, Dot11, Dot11Elt
 
 from wisec.interface import Interface
+from wisec.common import shorts
 
 
 class Router:
@@ -23,6 +24,7 @@ parser = argparse.ArgumentParser(prog='router')
 sub = parser.add_subparsers(dest='cmd')
 scan = sub.add_parser('scan', help='Scan for routers')
 scan.add_argument('-H', dest='hop', action='store_true', help='Channel hop')
+scan.add_argument('-t', dest='timeout', default=10, type=int)
 
 sub.add_parser('list', help='List found routers')
 bssids = {}
@@ -38,11 +40,15 @@ def get_bssids():
 
 def to_mac(name):
     if name in bssids:
-        return bssids[name]
+        return bssids[name].bssid
 
     for r in bssids.values():
         if r.match(name):
-            return r
+            return r.bssid
+
+    for m, n in shorts.items():
+        if n == name:
+            return m
 
     return name
 
@@ -65,7 +71,7 @@ def handler(args):
             Interface.default.hop(True)
         c = 0
         try:
-            sniff(prn=scan)
+            sniff(prn=scan, timeout=args.timeout)
         except KeyboardInterrupt:
             pass
         finally:

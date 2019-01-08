@@ -4,7 +4,10 @@ import argparse
 import os
 import time
 import signal
-
+import socket
+import fcntl
+import struct
+from cmd2 import argparse_completer
 from multiprocessing import Process
 from scapy.all import conf as scapy_conf
 
@@ -81,6 +84,19 @@ class Interface:
             name == self.name or \
             name == self.short
 
+    def get_ip(self):
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        try:
+            ret = socket.inet_ntoa(fcntl.ioctl(
+                s.fileno(),
+                0x8915,  # SIOCGIFADDR
+                struct.pack('256s', self.name.encode('utf-8'))
+            )[20:24])
+        except OSError:
+            ret = None
+
+        return ret
+
     @classmethod
     def find(cls, name):
         '''Find interface for name.'''
@@ -100,16 +116,18 @@ class Interface:
 Name:    {self.name}{short}
 MAC:     {self.mac}
 Mode:    {self.get_mode()}
+IP:      {self.get_ip()}
 Channel: {self.get_channel()}{hopping}
         '''.strip()
 
     @classmethod
     def set_default(cls, intr):
         '''Set default interface for wisec'''
-        if 'default' in dir(cls):
-            cls.default.hop(False)
-        cls.default = intr
-        scapy_conf.iface = intr.name
+        if intr is not None:
+            if hasattr(cls, 'default'):
+                cls.default.hop(False)
+            cls.default = intr
+            scapy_conf.iface = intr.name
 
 def get_all_interfaces():
     '''Get all active interfaces'''
@@ -135,7 +153,7 @@ def get_all_interfaces():
 def init():
     '''Setup for Interface'''
     Interface.all = get_all_interfaces()
-    Interface.set_default(Interface.find('adapter'))
+    Interface.set_default(Interface.find('lambda'))
     print(f'Interface: {Interface.default}')
 
 
@@ -144,6 +162,15 @@ def fin():
     if 'default' in dir(Interface):
         Interface.default.hop(False)
 
+
+def names():
+    ret = []
+    for i in Interface.all:
+        ret.append(i.mac)
+        ret.append(i.name)
+        if i.short:
+            ret.append(i.short)
+    return ret
 
 # Parser #
 parser = argparse.ArgumentParser(prog='interface')
@@ -155,7 +182,8 @@ mode.add_argument('mode', nargs='?')
 ilist = subparsers.add_parser('list', help='List available interfaces')
 
 iset = subparsers.add_parser('set', help='Set interface used by wisec')
-iset.add_argument('interface')
+setArg = iset.add_argument('interface')
+setattr(setArg, argparse_completer.ACTION_ARG_CHOICES, names)
 
 channel = subparsers.add_parser('channel', help='Set channel used by interface')
 channel.add_argument('channel')
