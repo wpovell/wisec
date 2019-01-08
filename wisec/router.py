@@ -7,14 +7,36 @@ from wisec.common import shorts
 
 
 class Router:
-    def __init__(self, p):
-        self.ssid = p[Dot11Elt].info.decode('utf-8')
-        self.bssid = p[Dot11].addr3
-        self.channel = int(ord(p[Dot11Elt:3].info))
+    def __init__(self, pkt):
+        self.bssid = pkt[Dot11].addr3
+
+        p = pkt[Dot11Elt]
+        self.crypto = set()
+        while isinstance(p, Dot11Elt):
+            if p.ID == 0:
+                self.ssid = p.info.decode('utf-8')
+            elif p.ID == 3:
+                self.channel = ord(p.info)
+            elif p.ID == 48:
+                self.crypto.add("WPA2")
+            elif p.ID == 221:
+                if p.info.startswith(b'\x00P\xf2\x01\x01\x00'):
+                    self.crypto.add("WPA")
+
+            p = p.payload
+
+        cap = pkt.sprintf("{Dot11Beacon:%Dot11Beacon.cap%}"
+                          "{Dot11ProbeResp:%Dot11ProbeResp.cap%}").split('+')
+        if not self.crypto:
+            if 'privacy' in cap:
+                self.crypto.add("WEP")
+            else:
+                self.crypto.add("OPN")
 
     def __str__(self):
         name = f'"{self.ssid}"'
-        return f'{name:20} ({self.bssid} on Ch {self.channel})'
+        sec = ' ({})'.format(', '.join(sorted(self.crypto)))
+        return f'{name:20} ({self.bssid} on Ch {self.channel}){sec}'
 
     def match(self, name):
         return name == self.ssid or name == self.bssid
@@ -69,7 +91,7 @@ def handler(args):
     if args.cmd == 'scan':
         if args.hop:
             Interface.default.hop(True)
-        c = 0
+            c = 0
         try:
             sniff(prn=scan, timeout=args.timeout)
         except KeyboardInterrupt:
@@ -77,8 +99,8 @@ def handler(args):
         finally:
             if args.hop:
                 Interface.default.hop(False)
-        total = len(bssids)
-        print(f'\n{c} new / {total} total')
+                total = len(bssids)
+                print(f'\n{c} new / {total} total')
     elif args.cmd == 'list':
         print('\n'.join(map(str, bssids.values())))
     else:
