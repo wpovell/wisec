@@ -35,8 +35,8 @@ class Router:
 
     def __str__(self):
         name = f'"{self.ssid}"'
-        sec = ' ({})'.format(', '.join(sorted(self.crypto)))
-        return f'{name:20} ({self.bssid} on Ch {self.channel}){sec}'
+        sec = ' ({})'.format(' '.join(sorted(self.crypto)))
+        return f'{name:25} ({self.bssid} on Ch {self.channel}){sec}'
 
     def match(self, name):
         return name == self.ssid or name == self.bssid

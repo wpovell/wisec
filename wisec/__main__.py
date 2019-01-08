@@ -2,10 +2,8 @@ import cmd2
 import os
 import sys
 import argparse
-
 from scapy.all import conf as scapy_conf
-
-from wisec import interface, deauth, router, arp
+from wisec import interface, deauth, router, arp, ip
 
 parser = argparse.ArgumentParser(prog='interface')
 subparsers = parser.add_subparsers()
@@ -32,10 +30,6 @@ class WifiShell(cmd2.Cmd):
         self.do_history = None
         self.do_alias = None
 
-    def postloop(self):
-        interface.fin()
-        arp.fin()
-
     @cmd2.with_argparser(interface.parser)
     def do_interface(self, args):
         interface.handler(args)
@@ -52,6 +46,10 @@ class WifiShell(cmd2.Cmd):
     def do_arp(self, args):
         arp.handler(args)
 
+    @cmd2.with_argparser(ip.parser)
+    def do_ip(self, args):
+        ip.handler(args)
+
 
 if __name__ == '__main__':
     if os.geteuid() != 0:
@@ -65,3 +63,6 @@ if __name__ == '__main__':
     print()
 
     sh = WifiShell().cmdloop()
+
+    interface.fin()
+    arp.fin()

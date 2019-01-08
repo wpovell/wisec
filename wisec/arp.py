@@ -1,6 +1,6 @@
 import argparse
 import time
-from scapy.all import ARP, Ether, srp, sendp, sniff, conf
+from scapy.all import ARP, Ether, srp, sendp, sniff
 from cmd2 import argparse_completer
 from wisec.common import shorts, lan, gateway
 from functools import total_ordering
@@ -19,6 +19,7 @@ class Host:
         except socket.herror:
             pass
         self.short = None
+
         if self.mac in shorts:
             self.short = shorts[self.mac]
 
@@ -49,7 +50,6 @@ class Host:
                 return r < 0
         return False
 
-
 def get_hosts():
     ret = []
     for h in hosts.values():
@@ -59,7 +59,6 @@ def get_hosts():
         ret += t
 
     return ret
-
 
 def to_mac(name):
     if name in hosts:
@@ -104,6 +103,8 @@ def handler(args):
             stop_poison()
         elif args.poison == 'sniff':
             sniff_poison()
+        else:
+            poison.print_help()
     else:
         parser.print_help()
 
@@ -165,17 +166,14 @@ def stop_poison():
         ptarget = None
         pgateway = None
 
-
 def sniff_poison():
     global ptarget
-    fltr='ip host ' + ptarget.ip
+    fltr = 'ip host ' + ptarget.ip
     packets = sniff(filter=fltr)
     print(packets)
 
-
 def fin():
     stop_poison()
-
 
 # Arp
 parser = argparse.ArgumentParser(prog='arp')
