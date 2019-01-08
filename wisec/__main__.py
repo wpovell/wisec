@@ -34,6 +34,7 @@ class WifiShell(cmd2.Cmd):
 
     def postloop(self):
         interface.fin()
+        arp.fin()
 
     @cmd2.with_argparser(interface.parser)
     def do_interface(self, args):

