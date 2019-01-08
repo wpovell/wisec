@@ -13,4 +13,4 @@ A small REPL to play around with wifi security
 
 ## Usage
 
-Start with `./sec`. Type `help` to see available commands.
+Start with `sudo ./sec`. Type `help` to see available commands.
